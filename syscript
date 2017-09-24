@@ -1,0 +1,39 @@
+#!/bin/bash
+
+##Not so quick, but very dirty way to gather all required info on machine certification tickets.
+
+#Output name and version of distro installed.
+os=$(lsb_release -a | grep Description | cut -f2- -d:)
+
+
+#CPU model, head is set like it is for multicore machines.
+cpu=$(cat /proc/cpuinfo | grep "model name" | cut -f2- -d: | head -1)
+
+#RAM cut is weird maybe is won't work on other machines?
+memory=$(free -m | grep Mem | cut -c16-20)
+
+#Disk info.
+disk=$(lsblk -io KNAME,SIZE,MODEL | grep sda | head -1 | cut -f2- -d" ")
+
+#Date duh.
+date=$(date)
+
+echo "OS: $os"
+
+echo "CPU: $cpu"
+
+echo "RAM: $memory MB"
+
+echo "HDD: $disk"
+
+echo "Date Completed: $date"
+
+echo "Built by:__________________"
+
+echo "Approved by:_______________"
+
+echo "Notes:									"
+
+echo "Price:											"
+
+echo "Password: @freegeek"
