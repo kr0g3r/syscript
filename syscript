@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 ##Not so quick, but very dirty way to gather all required info on machine certification tickets.
 
