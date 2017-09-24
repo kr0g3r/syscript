@@ -1,0 +1,5 @@
+#!/bin/sh
+
+./syscript
+
+lpr -o CutterMode=0NoNo fgar.png output

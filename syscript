@@ -17,6 +17,9 @@ disk=$(lsblk -io KNAME,SIZE,MODEL | grep sda | head -1 | cut -f2- -d" ")
 
 #Date duh.
 date=$(date)
+(
+
+touch output
 
 echo "OS: $os"
 
@@ -37,3 +40,7 @@ echo "Notes:									"
 echo "Price:											"
 
 echo "Password: @freegeek"
+
+yes " " | head -n 10 
+>> output)
+
