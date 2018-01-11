@@ -1,24 +1,29 @@
 #!/bin/bash
 
 ##Not so quick, but very dirty way to gather all required info on machine certification tickets.
-(
-#Output name and version of distro installed.
+
+#Output name and version of distro installed. 
+#works on SUSE Manjaro and Fedora, fucking Ubuntu is retarded(no lsb modules)
 os=$(lsb_release -a | awk -F ":" '/Description:/{sub(/^[ \t]+/, "",$2);print $2}')
 
 
-motherboard_model
-motherboard_sn
+motherboard_model=$(dmidecode -s baseboard-product-name)
+motherboard_sn=$(dmidecode -s baseboard-serial-number)
 
+
+#work as intended
 cpu_model=$(lscpu | awk -F: '/Model name:/{sub(/^[ \t]+/, "",$2);print $2}')
-cpu_threads_per_core=$(lscpu | awk -F: '/Threads(s) per core:/{print $4}')
-cpu_packages=$(lscpu | awk -F: '/Socket(s):/{print $2}')
-cpu_core_per_packages=$(lscpu | awk -F: '/Cores(s) per socket:/{print $2}')
+cpu_threads_per_core=$(lscpu | awk -F: '/Threads*/{print $2}')
+
+#these two don't return values at all?
+#cpu_packages=$(lscpu | awk -F: '/Socket*:/{print $2}')
+#cpu_core_per_package=$(lscpu | awk -F: '/Cores/{print $2}')
 
 
-#RAM cut is weird maybe this won't work on other machines?
-memory_model=$(dmidecode --type 17 | awk -F '/"Type: DDR"/;{print $2}')
+#RAM works...
+memory_model=$(sudo dmidecode --type 17 | gawk -F ":" '/DDR?/{print $2}')
 memory_size=$(free -b | grep Mem | awk -F " " '/Mem/ {print $2}')
-memory_speed=$(dmidecode --type 17 | grep -i "Configured Clock Speed" | awk -F ":" '/Speed/ {print $2}')
+memory_speed=$(dmidecode --type 17 | grep -i "Speed" | awk -F ":" '/Speed/ {print $2;exit}'|sed 's/\([0-9]*\)/\1/g' | cut -d ' ' -f 2)
 
 
 #Disk info.
@@ -26,18 +31,31 @@ disk=$(lsblk -io KNAME,SIZE,MODEL | grep sd | head -1 | cut -f2- -d" ")
 disk2=$(lsblk -io KNAME,SIZE,MODEL | grep nvme | head -1 | cut -f2- -d" ")
 
 ##drives
-model
-size
-speed
-type
+#model
+#size
+#speed
+#type
 
 
 gpu=$(lspci | awk -F: '/VGA compatible controller:/{print $3}')
 
+message=$(printf '{"os":"%s","cpu_model":"%s","cpu_threads_per_core":"%s","memory_model":"%s","memory_size":"%s","memory_speed":"%s"}\n' \
+                      "$os" "$cpu_model" "$cpu_threads_per_core" "$memory_model" "$memory_size" "$memory_speed")
 
-#Date duh.
-date=$(date)
+echo $message
 
-printf '{"os":"%s","cpu_model":"%s","cpu_threads_per_core":"%s","memory_model":"%s","memory_size":"%s","memory_speed":"s%","disk":"%s","disk2":"%s","gpu":"%s"}\n' "$os" "$cpu_model" "$cpu_threads_per_core" "$memory_model" "$memory_size" "memory_speed" "$disk" "$disk2" "$gpu"
-) > output.txt
+#export "THIS  IS WHERE THE TOKEN GOES"
+#curl -i http://installsrv.at.freegeekarkansas.org:3000/computers -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "$message"
+
+
+
+#$message=$(printf '{ {"os": "%s", "motherboard_model": "%s" "\",\"motherboard_sn\":\""$motherboard_sn"\",   
+#\"cpu_model\":\""$cpu_model"\", \" \"cpu_threads_per_core:\""$cpu_threads_per_core "\", \"cpu_packages\":\""$cpu_packages "\", \"cpu_cores_per_package\":\""$cpu_cores_per_package "\", \"memory_model\":\""$memory_model"\",
+#\"memory_size\":\""$memory_size"\", \"memory_speed\":\""$memory_speed"\",\"disk\":\""$disk"\", \"gpu\":\""$gpu"\",}"}' '{"{\"os\":\""$os"\", 
+#\"motherboard_model\":\""$motherboard_model"\",\"motherboard_sn\":\""$motherboard_sn"\",  
+#\"cpu_model\":\""$cpu_model"\", \" \"cpu_threads_per_core:\""$cpu_threads_per_core "\", \"cpu_packages\":\""$cpu_packages "\", \"cpu_cores_per_package\":\""$cpu_cores_per_package "\", \"memory_model\":\""$memory_model"\", 
+#\"memory_size\":\""$memory_size"\", \"memory_speed\":\""$memory_speed"\",\"disk\":\""$disk"\", \"gpu\":\""$gpu"\",}"}'
+
+#echo -e "{\"os\":\""$os"\", \"motherboard_model\":\""$motherboard_model"\", \"motherboard_sn\":\""$motherboard_sn"\",  \"cpu_model\":\""$cpu_model"\", \" \"cpu_threads_per_core:\""$cpu_threads_per_core "\", \"cpu_packages \":\""$Cpu_packages "\", \"cpu_cores_per_package\":\""$cpu_cores_per_package "\", \"memory_model \":\""$memory_model"\", \"memory_size\":\""$memory_size"\", \"memory_speed\":\""$memory_speed"\", \"disk\":\""$disk"\", \"gpu\":\""$gpu"\",}"
+
 
