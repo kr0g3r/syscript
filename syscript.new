@@ -1,6 +1,6 @@
 #!/bin/bash
 
-##Not so quick, but very dirty way to gather all required info on machine certification tickets.
+##Must be run with root, required to get values from dmidecode.
 
 #Output name and version of distro installed. 
 #works on SUSE Manjaro and Fedora, fucking Ubuntu is retarded(no lsb modules)
@@ -10,20 +10,14 @@ os=$(lsb_release -a | awk -F ":" '/Description:/{sub(/^[ \t]+/, "",$2);print $2}
 motherboard_model=$(dmidecode -s baseboard-product-name)
 motherboard_sn=$(dmidecode -s baseboard-serial-number)
 
-
-#work as intended
 cpu_model=$(lscpu | awk -F: '/Model name:/{sub(/^[ \t]+/, "",$2);print $2}')
 cpu_threads_per_core=$(lscpu | awk -F: '/Threads*/{print $2}')
+cpu_packages=$(lscpu | awk -F: '/Socket\(s\)/ {sub(/^[ \t]+/, "",$2);print $2}')
+cpu_cores_per_package=$(lscpu | awk -F: '/Core\(s\)/ {sub(/^[ \t]+/, "",$2);print $2}')
 
-#these two don't return values at all?
-#cpu_packages=$(lscpu | awk -F: '/Socket*:/{print $2}')
-#cpu_core_per_package=$(lscpu | awk -F: '/Cores/{print $2}')
-
-
-#RAM works...
-memory_model=$(sudo dmidecode --type 17 | gawk -F ":" '/DDR?/{print $2}')
+memory_model=$(dmidecode --type 17 | gawk -F ":" '/DDR?/{print $2}')
 memory_size=$(free -b | grep Mem | awk -F " " '/Mem/ {print $2}')
-memory_speed=$(dmidecode --type 17 | grep -i "Speed" | awk -F ":" '/Speed/ {print $2;exit}'|sed 's/\([0-9]*\)/\1/g' | cut -d ' ' -f 2)
+memory_speed=$(dmidecode --type 17 | grep -i "Speed" | awk -F ":" '/[0-9]/ {print $2;exit}'| cut -d ' ' -f 2)
 
 
 #Disk info.
@@ -39,8 +33,8 @@ disk2=$(lsblk -io KNAME,SIZE,MODEL | grep nvme | head -1 | cut -f2- -d" ")
 
 gpu=$(lspci | awk -F: '/VGA compatible controller:/{print $3}')
 
-message=$(printf '{"os":"%s","cpu_model":"%s","cpu_threads_per_core":"%s","memory_model":"%s","memory_size":"%s","memory_speed":"%s"}\n' \
-                      "$os" "$cpu_model" "$cpu_threads_per_core" "$memory_model" "$memory_size" "$memory_speed")
+message=$(printf '{"os":"%s","cpu_model":"%s","cpu_threads_per_core":"%s","cpu_packages":"%s","cpu_cores_per_package":"%s","memory_model":"%s","memory_size":"%s","memory_speed":"%s"}\n' \
+                      "$os" "$cpu_model" "$cpu_threads_per_core" "$cpu_packages" "$cpu_cores_per_package" "$memory_model" "$memory_size" "$memory_speed")
 
 echo $message
 
