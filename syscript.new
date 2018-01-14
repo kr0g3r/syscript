@@ -19,12 +19,20 @@ memory_model=$(dmidecode --type 17 | gawk -F ":" '/DDR?/{print $2}')
 memory_size=$(free -b | grep Mem | awk -F " " '/Mem/ {print $2}')
 memory_speed=$(dmidecode --type 17 | grep -i "Speed" | awk -F ":" '/[0-9]/ {print $2;exit}'| cut -d ' ' -f 2)
 
-#grabs a list of SCSI devices except any with numbers.
-lsblk -n -S | awk '/^[a-z]{3,}[^0-9]+/ {print $1}'
 
 #Disk info.
 #disk=$(lsblk -io KNAME,SIZE,MODEL | grep sd | head -1 | cut -f2- -d" ")
 #disk2=$(lsblk -io KNAME,SIZE,MODEL | grep nvme | head -1 | cut -f2- -d" ")
+
+
+#grabs a list of SCSI devices except any with numbers.
+dskvar=$(lsblk -n -S | awk '/^[a-z]{3,}[^0-9]+/ {print $1}')
+
+for dsk in ${dskvar}; do
+	model=$(hdparm -I /dev/$dskvar | awk -F" " '/Model Number/ {print$3,$4}')
+	size_bytes=$(fdisk -l | grep /dev/$dskvar | awk -F" " '/Disk/ {print$5}')
+	speed=$(hdparm -I /dev/$dskvar | awk -F: '/Nominal/ {print$2,$3,$4,$5}')
+
 
 ##drives
 #model
