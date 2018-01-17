@@ -20,32 +20,6 @@ memory_size=$(free -b | grep Mem | awk -F " " '/Mem/ {print $2}')
 memory_speed=$(dmidecode --type 17 | grep -i "Speed" | awk -F ":" '/[0-9]/ {print $2;exit}'| cut -d ' ' -f 2)
 
 
-#grabs a list of SCSI devices except any with numbers.
-dskvar=$(lsblk -n -S | awk '/^[a-z]{3,}[^0-9]+/ {print $1}')
-
-for dsk in ${dskvar}; do
-	model=$(hdparm -I /dev/$dskvar | awk -F" " '/Model Number/ {print$3,$4}')
-	size_bytes=$(fdisk -l | grep /dev/$dskvar | awk -F" " '/Disk/ {print$5}')
-	rpm=$(hdparm -I /dev/$dskvar | awk -F: '/Nominal/ {print$2,$3,$4,$5}')
-	read -r -d '' f_contents <<CAT
-{id:"${fkey_id}"
-,model:"${model}"
-,size_bytes:"${size_bytes}"
-,rpm:"${rpm}"
-}
-CAT
-
-	echo $f_contents
-done
-
-
-
-##drives
-#model
-#size
-#speed
-#type
-
 
 gpu=$(lspci | awk -F: '/VGA compatible controller:/{print $3}')
 
@@ -54,9 +28,29 @@ message=$(printf '{"os":"%s","cpu_model":"%s","cpu_threads_per_core":"%s","cpu_p
 
 echo $message
 
-#export "THIS  IS WHERE THE TOKEN GOES"
-#curl -i http://installsrv.at.freegeekarkansas.org:3000/computers -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "$message"
+#EXPORT
 
+#grabs a list of SCSI devices except any with numbers.
+dskvar=$(lsblk -n -S | awk '/^[a-z]{3,}[^0-9]+/ {print $1}')
+
+for dsk in ${dskvar}; do
+	model=$(hdparm -I /dev/$dskvar | awk -F" " '/Model Number/ {print$3,$4}')
+	size_bytes=$(fdisk -l | grep /dev/$dskvar | awk -F" " '/Disk/ {print$5}')
+	rpm=$(hdparm -I /dev/$dskvar | awk -F: '/Nominal/ {print$2,$3,$4,$5}')
+	sn=&(hdparm -I /dev/$dskvar | awk -F" " '/Serial Number/ {print$3}')
+	read -r -d '' f_contents <<CAT
+{
+"computer_id":${fkey_id}
+,"model":"${model}"
+,"size_bytes":${size_bytes}
+,"rpm":${rpm}
+,"sn":"${sn}"
+}
+CAT
+
+curl -i -s http://installsrv.at.freegeekarkansas.org:3000/drives -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "$f_contents"
+
+done
 
 
 #$message=$(printf '{ {"os": "%s", "motherboard_model": "%s" "\",\"motherboard_sn\":\""$motherboard_sn"\",   
@@ -67,5 +61,4 @@ echo $message
 #\"memory_size\":\""$memory_size"\", \"memory_speed\":\""$memory_speed"\",\"disk\":\""$disk"\", \"gpu\":\""$gpu"\",}"}'
 
 #echo -e "{\"os\":\""$os"\", \"motherboard_model\":\""$motherboard_model"\", \"motherboard_sn\":\""$motherboard_sn"\",  \"cpu_model\":\""$cpu_model"\", \" \"cpu_threads_per_core:\""$cpu_threads_per_core "\", \"cpu_packages \":\""$Cpu_packages "\", \"cpu_cores_per_package\":\""$cpu_cores_per_package "\", \"memory_model \":\""$memory_model"\", \"memory_size\":\""$memory_size"\", \"memory_speed\":\""$memory_speed"\", \"disk\":\""$disk"\", \"gpu\":\""$gpu"\",}"
-
 
